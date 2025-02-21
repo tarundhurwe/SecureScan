@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import UserProfile
+from .models import UserProfile, Scan, ScanResult
 from django.contrib.auth import authenticate
 
 
@@ -45,3 +45,31 @@ class LoginSerializer(serializers.Serializer):
 
         data["user"] = user
         return data
+
+
+class ScanSerializer(serializers.ModelSerializer):
+    scan_type = serializers.ChoiceField(choices=["nikto", "nmap", "all"], default="all")
+
+    class Meta:
+        model = Scan
+        fields = ["url", "scan_type"]
+
+    def create(self, validated_data):
+        """
+        Create a new scan instance with the provided data.
+        """
+        return Scan.objects.create(**validated_data)
+
+    def validate_url(self, value):
+        """
+        Validate the target URL format.
+        """
+        if not value.startswith(("http://", "https://")):
+            raise serializers.ValidationError("URL must start with http:// or https://")
+        return value
+
+
+class ScanResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ScanResult
+        fields = ["vulnerability", "severity", "description", "recommendation"]
